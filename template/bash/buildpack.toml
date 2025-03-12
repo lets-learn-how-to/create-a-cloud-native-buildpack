@@ -1,0 +1,21 @@
+api = "0.8"
+
+[buildpack]
+id = "local/template"
+name = "Template Buildpack in Bash"
+version = "1.0.0"
+[[buildpack.licenses]]
+type = "MIT"
+
+[metadata]
+include-files = ["bin/detect", "bin/build", "bin/buildpack.sh", "bin/dasel", "buildpack.toml"]
+[[metadata.dependencies]]
+stacks = ["io.buildpacks.stacks.jammy"]
+
+[[stacks]]
+id = "*"
+
+[[targets]]
+os = "linux"
+[[targets.distros]]
+name = "ubuntu"
