@@ -1,21 +1,29 @@
 api = "0.8"
 
 [buildpack]
-id = "local/template"
+id = "template/bash"
 name = "Template Buildpack in Bash"
 version = "1.0.0"
+
 [[buildpack.licenses]]
 type = "MIT"
 
 [metadata]
 include-files = ["bin/detect", "bin/build", "bin/buildpack.sh", "bin/dasel", "buildpack.toml"]
+
 [[metadata.dependencies]]
 stacks = ["io.buildpacks.stacks.jammy"]
+
+[[metadata.configurations]]
+name = "BP_TEMPLATE_BASH_MAX_PRIME"
+default = "1000"
+description = "The max number to search for primes"
 
 [[stacks]]
 id = "*"
 
 [[targets]]
 os = "linux"
+
 [[targets.distros]]
 name = "ubuntu"

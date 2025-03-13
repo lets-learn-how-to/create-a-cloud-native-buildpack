@@ -1,25 +1,49 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
-
 source "$CNB_BUILDPACK_DIR/bin/buildpack.sh"
 
 # Create a new layer with build launch and cache turned on
-create_layer "revision" true true true
+create_layer "primes" true true true
 
-if [[ -f "$CNB_LAYERS_DIR/revision/env/GIT_COMMIT.default" ]] &&
-   [[ "$(get_buildpack_plan_meta hash)" == "$(cat $CNB_LAYERS_DIR/revision/env/GIT_COMMIT.default)" ]]
+MAX_PRIMES_CACHED_FILE="$CNB_LAYERS_DIR/primes/max_primes"
+
+if [[ -f "$MAX_PRIMES_CACHED_FILE" ]] &&
+   [[ "$(get_buildpack_plan_meta max_prime)" == "$(cat $MAX_PRIMES_CACHED_FILE)" ]]
 then
-  echo -e "\033[90m  Reusing cached layer\033[0m"
+  echo "  Reusing cached layer:"
+  echo -e "\033[90m    Last time we found $(cat "$CNB_LAYERS_DIR/primes/env/PRIMES.default" | wc -w | tr -d ' ') Primes\033[0m"
+  # Exit with success
+  # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/build/#exit-codes
   exit 0
 fi
 
-echo -e "\033[90m  Cache out of date, rebuilding\033[0m"
+echo "  Generating primes up to $BP_TEMPLATE_BASH_MAX_PRIME"
+PRIMES=""
+TIME_START="$(date +%s)"
+for ((n = 1; n<=$BP_TEMPLATE_BASH_MAX_PRIME; n++)); do
+  IS_PRIME="true"
 
-# Set an environment variables for git to default to the current git revision
-set_env_var "revision" "GIT_BRANCH" "$(git rev-parse --abbrev-ref HEAD)" "default"
-set_env_var "revision" "GIT_COMMIT" "$(git rev-parse HEAD)" "default"
-set_env_var "revision" "GIT_TAG" "$(git name-rev --tags --name-only $(git rev-parse HEAD))" "default"
+  for ((i=2; i<=$n/2; i++)); do
+    ans=$(( n%i ))
+    if [ $ans -eq 0 ]; then
+      IS_PRIME="false"
+      break
+    fi
+  done
+
+  if [[ "$IS_PRIME" == "true" ]]; then
+    PRIMES="$PRIMES $n"
+  fi
+done
+TIME_END="$(date +%s)"
+PRIMES="$(echo "$PRIMES" | sed -re 's/^[[:blank:]]+|[[:blank:]]+$//g' -e 's/[[:blank:]]+/ /g')"
+
+echo -e "\033[90m    Found $(echo "$PRIMES" | wc -w | tr -d ' ') Primes in $((TIME_END-TIME_START)) seconds\033[0m"
+
+echo -n "$BP_TEMPLATE_BASH_MAX_PRIME" > $MAX_PRIMES_CACHED_FILE
+
+# Set an environment variable at build and launch time with the prime number
+set_env_var "primes" "PRIMES" "$PRIMES" "default"
 
 # Exit with success
 # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/build/#exit-codes

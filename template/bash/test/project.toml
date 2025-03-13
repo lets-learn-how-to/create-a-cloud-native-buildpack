@@ -7,7 +7,7 @@ version = "0.1"
 builder = "paketobuildpacks/builder-jammy-base"
 
 [[io.buildpacks.group]]
-uri = "../../"
+uri = "../"
 
 [[io.buildpacks.group]]
 uri = "paketo-buildpacks/procfile@5.10.0"
