@@ -1,0 +1,6 @@
+api = "0.8"
+
+[buildpack]
+id = "example-bash/do-nothing"
+name = "Do absolutely nothing buildpack"
+version = "1.0.0"

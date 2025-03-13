@@ -6,6 +6,12 @@ This repo will take you through creating cloud native buildpacks in several lang
 
 The most basic language for buildpacks, you must bring your own tools with you.
 
+### The do-nothing buildpack
+
+Take a look at the buildpack at [examples/bash/do-nothing](./examples/bash/do-nothing). This buildpack is a minimal implementation of a cloud native buildpack that, as it says on the tin, does absolutely nothing.
+
+### Primes buildpack
+
 Take a look at the buildpack at [template/bash](./template/bash).
 
 This buildpack uses the following features:
