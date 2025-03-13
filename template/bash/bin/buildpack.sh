@@ -10,7 +10,7 @@ create_buildpack_plan() {
   echo -e "\033[90m    Requires: $REQUIRES\033[0m"
   # Update the build plan
   # See the spec at: https://github.com/buildpacks/spec/blob/main/buildpack.md#build-plan-toml
-  cat <<-EOF > $CNB_BUILD_PLAN_PATH
+  cat <<-EOF >$CNB_BUILD_PLAN_PATH
     [[provides]]
     name = "$PROVIDES"
 
@@ -19,8 +19,8 @@ create_buildpack_plan() {
 EOF
 
   if [[ -n "$REQUIRES_META" ]]; then
-    echo "[requires.metadata]" >> $CNB_BUILD_PLAN_PATH
-    echo "$REQUIRES_META" >> $CNB_BUILD_PLAN_PATH
+    echo "[requires.metadata]" >>$CNB_BUILD_PLAN_PATH
+    echo "$REQUIRES_META" >>$CNB_BUILD_PLAN_PATH
 
     echo -e "\033[90m    Metadata:"
     echo -e "$(echo $REQUIRES_META | sed 's/\(.*\)/\\033\[90m      \1\\033\[0m/')"
@@ -31,11 +31,19 @@ get_buildpack_plan_meta() {
   KEY=$1
 
   if [[ -n "$CNB_BUILD_PLAN_PATH" ]]; then
-    get_data_from_toml "$CNB_BUILD_PLAN_PATH" "requires.first().metadata.$KEY"
+    if [[ -n "$KEY" ]]; then
+      get_data_from_toml "$CNB_BUILD_PLAN_PATH" "requires.first().metadata.$KEY"
+    else
+      get_data_from_toml "$CNB_BUILD_PLAN_PATH" "requires.first().metadata"
+    fi
   fi
 
   if [[ -n "$CNB_BP_PLAN_PATH" ]]; then
-    get_data_from_toml "$CNB_BP_PLAN_PATH" "entries.first().metadata.$KEY"
+    if [[ -n "$KEY" ]]; then
+      get_data_from_toml "$CNB_BP_PLAN_PATH" "entries.first().metadata.$KEY"
+    else
+      get_data_from_toml "$CNB_BP_PLAN_PATH" "entries.first().metadata"
+    fi
   fi
 }
 
@@ -46,12 +54,15 @@ create_layer() {
   CACHE=$4
 
   mkdir -p "$CNB_LAYERS_DIR/$NAME/"
-  cat <<-EOF > "$CNB_LAYERS_DIR/$NAME.toml"
+  cat <<-EOF >"$CNB_LAYERS_DIR/$NAME.toml"
     [types]
     launch = $LAUNCH
     build = $BUILD
     cache = $CACHE
 EOF
+
+  get_buildpack_plan_meta "" > "$CNB_LAYERS_DIR/$NAME/metadata.toml"
+  cat "$CNB_LAYERS_DIR/$NAME/metadata.toml"
 }
 
 export HAS_PRINTED_ENV_VARS="false"
@@ -84,17 +95,17 @@ set_env_var() {
   mkdir -p "$ENV_DIR"
 
   if [[ "$TYPE" == "default" ]]; then
-    echo -n "$VALUE" > "$ENV_DIR/$NAME.default"
+    echo -n "$VALUE" >"$ENV_DIR/$NAME.default"
   fi
 
   if [[ "$TYPE" == "prepend" ]]; then
-    echo -n "$VALUE" > "$ENV_DIR/$NAME.prepend"
-    echo -n "$DELIMETER" > "$ENV_DIR/$NAME.delim"
+    echo -n "$VALUE" >"$ENV_DIR/$NAME.prepend"
+    echo -n "$DELIMETER" >"$ENV_DIR/$NAME.delim"
   fi
 
   if [[ "$TYPE" == "append" ]]; then
-    echo -n "$VALUE" > "$ENV_DIR/$NAME.append"
-    echo -n "$DELIMETER" > "$ENV_DIR/$NAME.delim"
+    echo -n "$VALUE" >"$ENV_DIR/$NAME.append"
+    echo -n "$DELIMETER" >"$ENV_DIR/$NAME.delim"
   fi
 }
 
@@ -102,7 +113,7 @@ get_data_from_toml() {
   FILE=$1
   KEY=$2
 
-  $CNB_BUILDPACK_DIR/bin/dasel --pretty=false -r toml "$KEY" < "$FILE" | cut -d "'" -f 2 | tr -d '\n'
+  $CNB_BUILDPACK_DIR/bin/dasel --pretty=false -r toml "$KEY" <"$FILE" | cut -d "'" -f 2 | tr -d '\n'
 }
 
 load_configuration() {
@@ -110,7 +121,7 @@ load_configuration() {
   HEADER_HAS_PRINTED="false"
 
   while true; do
-    CONFIG=$($CNB_BUILDPACK_DIR/bin/dasel -r toml "metadata.configurations.index($INDEX)" < "$CNB_BUILDPACK_DIR/buildpack.toml" 2> /dev/null)
+    CONFIG=$($CNB_BUILDPACK_DIR/bin/dasel -r toml "metadata.configurations.index($INDEX)" <"$CNB_BUILDPACK_DIR/buildpack.toml" 2 >/dev/null)
     if [[ "$?" -ne 0 ]]; then
       break
     fi
