@@ -18,7 +18,7 @@ create_buildpack_plan() {
     name = "$REQUIRES"
 EOF
 
-  if [[ -n "REQUIRES_META" ]]; then
+  if [[ -n "$REQUIRES_META" ]]; then
     echo "[requires.metadata]" >> $CNB_BUILD_PLAN_PATH
     echo "$REQUIRES_META" >> $CNB_BUILD_PLAN_PATH
 
@@ -54,6 +54,8 @@ create_layer() {
 EOF
 }
 
+export HAS_PRINTED_ENV_VARS="false"
+
 set_env_var() {
   LAYER=$1
   NAME=$2
@@ -61,7 +63,17 @@ set_env_var() {
   TYPE=$4
   DELIMETER=$5
 
-  echo -e "\033[90m  Setting $TYPE variable $NAME = $VALUE\033[0m"
+  if [[ "$HAS_PRINTED_ENV_VARS" == "false" ]]; then
+    echo "  Setting environment variables"
+    export HAS_PRINTED_ENV_VARS="true"
+  fi
+
+  TRUNCATED_VALUE="$(echo "$VALUE" | head -c 25)"
+  if [[ "$TRUNCATED_VALUE" == "$VALUE" ]]; then
+    echo -e "\033[90m    Setting $TYPE variable $NAME = $VALUE\033[0m"
+  else
+    echo -e "\033[90m    Setting $TYPE variable $NAME = $(echo $TRUNCATED_VALUE | sed -re 's/^[[:blank:]]+|[[:blank:]]+$//g' -e 's/[[:blank:]]+/ /g')...\033[0m"
+  fi
 
   if [[ -z "$DELIMETER" ]]; then
     DELIMETER=":"
