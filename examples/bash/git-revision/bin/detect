@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source "$CNB_BUILDPACK_DIR/bin/buildpack.sh"
+
+# The template repo exports git environment variables,
+# so here we check if there is a .git directory
+if [[ -d /workspace/.git ]]; then
+  echo -e "\033[90m  Found a .git directory in application repo, participating\033[0m"
+
+  # Create a build plan that provides "git-revision" and requires "git-revision"
+  create_buildpack_plan "git-revision" "git-revision" "hash = \"$(git rev-parse HEAD)\""
+
+  # Exit with success
+  # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/detect/#exit-codes
+  exit 0
+fi
+
+echo -e "\033[31m\033[1m  No .git directory in application repo, not participating\033[0m"
+# Exit with non-participation
+# See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/detect/#exit-codes
+exit 100

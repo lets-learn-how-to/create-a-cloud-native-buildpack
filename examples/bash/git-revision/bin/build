@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+source "$CNB_BUILDPACK_DIR/bin/buildpack.sh"
+
+# Create a new layer with build launch and cache turned on
+create_layer "revision" true true true
+
+if [[ -f "$CNB_LAYERS_DIR/revision/env/GIT_COMMIT.default" ]] &&
+   [[ "$(get_buildpack_plan_meta hash)" == "$(cat $CNB_LAYERS_DIR/revision/env/GIT_COMMIT.default)" ]]
+then
+  echo -e "\033[90m  Reusing cached layer\033[0m"
+  exit 0
+fi
+
+echo -e "\033[90m  Cache out of date, rebuilding\033[0m"
+
+# Set an environment variables for git to default to the current git revision
+set_env_var "revision" "GIT_BRANCH" "$(git rev-parse --abbrev-ref HEAD)" "default"
+set_env_var "revision" "GIT_COMMIT" "$(git rev-parse HEAD)" "default"
+set_env_var "revision" "GIT_TAG" "$(git name-rev --tags --name-only $(git rev-parse HEAD))" "default"
+
+# Exit with success
+# See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/build/#exit-codes
+exit 0
