@@ -2,7 +2,11 @@
 
 source "$CNB_BUILDPACK_DIR/bin/buildpack.sh"
 
-create_buildpack_plan "primes" "primes" "max_prime = \"$BP_TEMPLATE_BASH_MAX_PRIME\""
+# Create a build plan that provides and
+# requires primes, with some metadata
+create_plan "primes" "primes" <<-METADATA
+  max_prime = "$BP_TEMPLATE_BASH_MAX_PRIME"
+METADATA
 
 # Exit with success
 # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/detect/#exit-codes

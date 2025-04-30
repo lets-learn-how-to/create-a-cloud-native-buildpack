@@ -2,48 +2,26 @@
 
 source "$CNB_BUILDPACK_DIR/bin/buildpack.sh"
 
-# Create a new layer with build launch and cache turned on
+# Create a new layer with build, launch and cache turned on
 create_layer "primes" true true true
 
-MAX_PRIMES_CACHED_FILE="$CNB_LAYERS_DIR/primes/max_primes"
-
-if [[ -f "$MAX_PRIMES_CACHED_FILE" ]] &&
-   [[ "$(get_buildpack_plan_meta max_prime)" == "$(cat $MAX_PRIMES_CACHED_FILE)" ]]
-then
-  echo "  Reusing cached layer:"
-  echo -e "\033[90m    Last time we found $(cat "$CNB_LAYERS_DIR/primes/env/PRIMES.default" | wc -w | tr -d ' ') Primes\033[0m"
+if [[ "$(read_plan_metadata max_prime)" == "$(read_layer_metadata primes max_prime)" ]]; then
+  log_topic "Reusing cached layer"
+  log_topic_info "Last time we found $(cat "$CNB_LAYERS_DIR/primes/env/PRIMES.default" | wc -w | tr -d ' ') Primes"
   # Exit with success
   # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/build/#exit-codes
   exit 0
 fi
 
-echo "  Generating primes up to $BP_TEMPLATE_BASH_MAX_PRIME"
-PRIMES=""
-TIME_START="$(date +%s)"
-for ((n = 1; n<=$BP_TEMPLATE_BASH_MAX_PRIME; n++)); do
-  IS_PRIME="true"
+log_topic "Generating primes up to $BP_TEMPLATE_BASH_MAX_PRIME"
 
-  for ((i=2; i<=$n/2; i++)); do
-    ans=$(( n%i ))
-    if [ $ans -eq 0 ]; then
-      IS_PRIME="false"
-      break
-    fi
-  done
+PRIMES="$(bash "$CNB_BUILDPACK_DIR/bin/calculate_primes.sh" "$BP_TEMPLATE_BASH_MAX_PRIME")"
 
-  if [[ "$IS_PRIME" == "true" ]]; then
-    PRIMES="$PRIMES $n"
-  fi
-done
-TIME_END="$(date +%s)"
-PRIMES="$(echo "$PRIMES" | sed -re 's/^[[:blank:]]+|[[:blank:]]+$//g' -e 's/[[:blank:]]+/ /g')"
+log_topic_info "Found $(echo "$PRIMES" | wc -w | tr -d ' ') Primes"
 
-echo -e "\033[90m    Found $(echo "$PRIMES" | wc -w | tr -d ' ') Primes in $((TIME_END-TIME_START)) seconds\033[0m"
+export_env_var "primes" "PRIMES" "$PRIMES" "default"
 
-echo -n "$BP_TEMPLATE_BASH_MAX_PRIME" > $MAX_PRIMES_CACHED_FILE
-
-# Set an environment variable at build and launch time with the prime number
-set_env_var "primes" "PRIMES" "$PRIMES" "default"
+write_layer_metadata "primes"
 
 # Exit with success
 # See the exit code spec at: https://buildpacks.io/docs/for-platform-operators/concepts/lifecycle/build/#exit-codes
